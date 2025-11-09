@@ -28,7 +28,7 @@ class CartPage(BasePage):
     ITEM_UPDATE_BUTTON = "button.js-update-cart.miglog-btn-update"
     
     # Clear Cart
-    CLEAR_CART_CONFIRM = "button:has-text('כן, רוקנו את הסל')"
+    CLEAR_CART_CONFIRM_BUTTON = "button.btn-radius.outline"
     
     # Empty Cart State
     EMPTY_CART_MESSAGE = "h3.topTitle:has-text('שנתחיל לקנות?')"
@@ -374,8 +374,8 @@ class CartPage(BasePage):
         clear_cart_button.click()
         
         # Wait for confirmation dialog and confirm
-        confirm_button = self.page.locator(self.CLEAR_CART_CONFIRM)
-        confirm_button.wait_for(state="visible", timeout=3000)
+        confirm_button = self.page.locator(self.CLEAR_CART_CONFIRM_BUTTON)
+        confirm_button.wait_for(state="visible", timeout=5000)
         confirm_button.click()
         
         # Wait for cart to be empty
