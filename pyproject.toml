@@ -1,0 +1,24 @@
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-v --html=reports/report.html --self-contained-html"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_backend"
+[project]
+name = "shufersal_online_automation"
+version = "1.0.0"
+description = "UI automation for Shufersal Online e-commerce"
+requires-python = ">=3.9"
+dependencies = [
+    "playwright>=1.40.0",
+    "pytest>=7.4.3",
+    "pytest-html>=4.1.1",
+    "pytest-xdist>=3.5.0",
+    "allure-pytest>=2.13.2",
+    "python-dotenv>=1.0.0",
+]

@@ -1,0 +1,96 @@
+name: Shufersal Online Automation Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Install Playwright browsers
+      run: |
+        playwright install chromium
+        playwright install-deps chromium
+    
+    - name: Create screenshots directory
+      run: mkdir -p screenshots
+    
+    - name: Run smoke tests
+      env:
+        HEADLESS: true
+        SLOW_MO: 0
+        BROWSER_TIMEOUT: 30000
+      run: |
+        pytest -m smoke -v --html=reports/smoke-report.html --self-contained-html
+      continue-on-error: false
+    
+    - name: Run all tests
+      if: success()
+      env:
+        HEADLESS: true
+        SLOW_MO: 0
+        BROWSER_TIMEOUT: 30000
+      run: |
+        pytest tests/ -v --html=reports/full-report.html --self-contained-html
+    
+    - name: Upload test reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-reports-py${{ matrix.python-version }}
+        path: reports/
+        retention-days: 30
+    
+    - name: Upload screenshots on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: failure-screenshots-py${{ matrix.python-version }}
+        path: screenshots/
+        retention-days: 7
+    
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-logs-py${{ matrix.python-version }}
+        path: temp/test_runs/
+        retention-days: 7
+    
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "### Test Results for Python ${{ matrix.python-version }} 🧪" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f reports/full-report.html ]; then
+          echo "✅ Tests completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Tests failed or were skipped" >> $GITHUB_STEP_SUMMARY
+        fi
