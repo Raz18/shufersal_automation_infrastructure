@@ -43,13 +43,13 @@ jobs:
     - name: Create screenshots directory
       run: mkdir -p screenshots
     
-    - name: Run smoke tests
+    - name: Run tests
       env:
         HEADLESS: true
         SLOW_MO: 0
         BROWSER_TIMEOUT: 30000
       run: |
-        pytest -m smoke -v --html=reports/smoke-report.html --self-contained-html
+        pytest tests/
       continue-on-error: false
     
     - name: Run all tests
