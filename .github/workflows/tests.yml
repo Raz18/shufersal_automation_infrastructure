@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: '3.11'
     
     steps:
     - name: Checkout code
@@ -36,7 +36,9 @@ jobs:
     
     - name: Install Playwright browsers
       run: |
-        playwright install --with-deps chromium
+        playwright install chromium
+      env:
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 0
     
     - name: Create screenshots directory
       run: mkdir -p screenshots
