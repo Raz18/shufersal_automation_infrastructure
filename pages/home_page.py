@@ -2,7 +2,7 @@
 Page object for Shufersal Online homepage.
 """
 from pages.base_page import BasePage
-from playwright.sync_api import Page
+from playwright.sync_api import Page, TimeoutError
 
 
 class HomePage(BasePage):
@@ -24,6 +24,8 @@ class HomePage(BasePage):
         self.navigate_to(self.url)
         # Wait for key elements to be visible
         self.wait_for_element(self.SEARCH_INPUT, timeout=10000)
+        # Dismiss any promotional popups that may appear on first visit
+        self._dismiss_popups()
     
     def search_product(self, product_name: str) -> None:
         """
@@ -50,3 +52,14 @@ class HomePage(BasePage):
         self.click_element(self.CART_LEFT_BAR_TOGGLE)
         # Wait for cart sidebar to appear
         self.page.locator("complementary").wait_for(state="visible", timeout=5000)
+
+    def _dismiss_popups(self) -> None:
+        """Dismiss any promotional popups that appear on first visit."""
+        try:
+            # Look for Close button in promotional popup
+            close_button = self.page.locator("status button:has-text('Close')")
+            if close_button.is_visible(timeout=2000):
+                close_button.click()
+                self.logger.info("Dismissed promotional popup")
+        except TimeoutError:
+            pass  # No popup to dismiss
