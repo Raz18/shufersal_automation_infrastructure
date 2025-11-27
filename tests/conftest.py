@@ -1,6 +1,4 @@
-"""
-Pytest configuration and fixtures for Shufersal Online automation tests.
-"""
+"""Pytest configuration and fixtures for Shufersal Online automation tests."""
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
 from utils.settings import Settings

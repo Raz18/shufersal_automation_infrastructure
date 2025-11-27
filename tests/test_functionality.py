@@ -1,7 +1,4 @@
-﻿"""
-Functional test cases for Shufersal Online.
-Tests normal user workflows and feature functionality.
-"""
+﻿"""Functional test cases for Shufersal Online."""
 import pytest
 from playwright.sync_api import Page
 from pages.home_page import HomePage
@@ -107,7 +104,7 @@ class TestFunctionality:
         assert total_price_after == 0.00, f"Expected price 0.00, but got {total_price_after}"
 
     @pytest.mark.cart
-    def test_update_product_quantity_in_cart(self, page):
+    def test_update_product_quantity_in_cart(self, page: Page):
         """
         Test updating product quantity in cart.
         
@@ -115,8 +112,8 @@ class TestFunctionality:
         1. Navigate to homepage
         2. Search for a product
         3. Add 1 product to cart
-        4. Update its quantity to 3
-        5. Verify cart shows 3 items
+        4. Update its quantity to 5
+        5. Verify cart shows correct quantity
         6. Clean up: Clear cart
         """
         # Initialize page objects
@@ -154,6 +151,7 @@ class TestFunctionality:
         
         # Clean up
         cart_page.clear_cart()
+        assert cart_page.is_cart_empty(), "Cart should be empty after cleanup"
     
     
 

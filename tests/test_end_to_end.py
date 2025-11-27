@@ -1,4 +1,5 @@
 import pytest
+from playwright.sync_api import Page
 from pages.cart_page import CartPage
 from pages.checkout_page import CheckoutPage
 from pages.home_page import HomePage
@@ -21,7 +22,7 @@ class TestEndToEndPurchaseFlow:
     - Dedicated test environment with known delivery slots
     """
     
-    def test_search_add_to_cart_verify_and_checkout(self, page):
+    def test_search_add_to_cart_verify_and_checkout(self, page: Page):
         """
         Test complete user flow: Search → Add to Cart → Verify → Checkout → Login Wall
         
@@ -101,5 +102,3 @@ class TestEndToEndPurchaseFlow:
         
         final_cart_count = cart_page.get_cart_item_count()
         assert final_cart_count == 0, f"Expected empty cart, but got {final_cart_count} items"
-     
-

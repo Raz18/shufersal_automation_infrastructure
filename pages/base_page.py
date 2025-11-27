@@ -1,7 +1,7 @@
 """
 Base page class with common functionality for all page objects.
 """
-from playwright.sync_api import Page
+from playwright.sync_api import Page, TimeoutError
 from utils.helpers import setup_logger
 
 
@@ -37,7 +37,7 @@ class BasePage:
         try:
             self.page.wait_for_selector(selector, timeout=timeout, state="visible")
             return True
-        except:
+        except TimeoutError:
             return False
     
     def wait_for_element(self, selector: str, timeout: int = 30000) -> None:

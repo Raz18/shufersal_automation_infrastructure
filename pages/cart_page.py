@@ -3,7 +3,7 @@ Page object for shopping cart sidebar.
 The cart is implemented as a sidebar that opens on the same page, not a separate page.
 """
 from pages.base_page import BasePage
-from playwright.sync_api import Page
+from playwright.sync_api import Page, TimeoutError
 import re
 
 class CartPage(BasePage):
@@ -56,10 +56,7 @@ class CartPage(BasePage):
     
     def is_cart_sidebar_open(self) -> bool:
         """Check if cart sidebar is currently open."""
-        try:
-            return self.is_visible(self.CART_MIDDLE_CONTENT, timeout=1000)
-        except:
-            return False
+        return self.is_visible(self.CART_MIDDLE_CONTENT, timeout=1000)
     
     # ============================================================================
     # CART ITEM OPERATIONS
@@ -67,8 +64,7 @@ class CartPage(BasePage):
     
     def get_cart_item_count(self) -> int:
         """Get number of items in cart from the sidebar."""
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
+        self.open_cart_sidebar()
         
         if self.is_visible(self.EMPTY_CART_MESSAGE, timeout=5000):
             return 0
@@ -77,7 +73,7 @@ class CartPage(BasePage):
         try:
             items.first.wait_for(state="attached", timeout=5000)
             return items.count()
-        except:
+        except TimeoutError:
             return 0
     
     def get_product_quantity_in_cart(self, product_name: str) -> int:
@@ -90,19 +86,14 @@ class CartPage(BasePage):
         Returns:
             Quantity of the product as integer, or 0 if not found
         """
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
+        self.open_cart_sidebar()
         
         item = self._get_cart_item_by_name(product_name)
         if item:
-            try:
-                quantity_input = item.locator(self.ITEM_QUANTITY_INPUT)
-                if quantity_input.count() > 0:
-                    quantity_value = quantity_input.input_value()
-                    return int(float(quantity_value))
-            except:
-                pass
-        
+            quantity_input = item.locator(self.ITEM_QUANTITY_INPUT)
+            if quantity_input.count() > 0:
+                quantity_value = quantity_input.input_value()
+                return int(float(quantity_value))
         return 0
     
     def check_product_quantity_in_cart(self, product_name: str, expected_quantity: int) -> bool:
@@ -135,8 +126,7 @@ class CartPage(BasePage):
         Returns:
             True if product name found in cart items, False otherwise
         """
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
+        self.open_cart_sidebar()
         
         if self.is_visible(self.EMPTY_CART_MESSAGE, timeout=2000):
             return False
@@ -186,8 +176,7 @@ class CartPage(BasePage):
             'missing_products': []
         }
         
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
+        self.open_cart_sidebar()
         
         if verbose:
             self.logger.info(f"Verifying {len(product_names)} products in cart")
@@ -250,8 +239,7 @@ class CartPage(BasePage):
                 self.logger.warning(f"Invalid quantity: {quantity}")
                 return False
             
-            if not self.is_cart_sidebar_open():
-                self.open_cart_sidebar()
+            self.open_cart_sidebar()
             
             # Find product in cart
             item = self._get_cart_item_by_name(product_name)
@@ -282,12 +270,28 @@ class CartPage(BasePage):
             
             # Click update button
             item.locator(self.ITEM_UPDATE_BUTTON).first.click()
-
+            
+            # Wait for success banner to appear, then disappear
+            # This ensures cart has fully updated before method returns
+            notification_banner = self.page.get_by_label("הסל עודכן!")
+            try:
+                # Wait for banner to appear (confirms update initiated)
+                notification_banner.wait_for(state="visible", timeout=3000)
+                # Wait for banner to disappear (confirms update complete)
+                notification_banner.wait_for(state="hidden", timeout=5000)
+            except TimeoutError as banner_error:
+                # Log but don't fail - banner timing might vary
+                self.logger.warning(f"Banner wait timeout (update likely still succeeded): {banner_error}")
+            
             self.logger.info(f"Updated '{product_name}' quantity from {current_qty} to {quantity}")
             return True
             
-        except Exception as e:
+        except (TimeoutError, Exception) as e:
+            # TimeoutError: element not found/visible in time
+            # Other exceptions: re-raise programming errors for better debugging
             self.logger.error(f"Error updating quantity for '{product_name}': {e}")
+            if isinstance(e, (AttributeError, TypeError, ValueError)):
+                raise  # Re-raise programming errors
             return False
     
     # ============================================================================
@@ -344,8 +348,7 @@ class CartPage(BasePage):
         Returns:
             True if product was found and removed, False otherwise
         """
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
+        self.open_cart_sidebar()
         
         item_to_remove = self._get_cart_item_by_name(product_name)
         
@@ -365,19 +368,26 @@ class CartPage(BasePage):
     
     def clear_cart(self) -> None:
         """Clear all items from the cart using the clear cart button."""
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
-        
+        self.open_cart_sidebar()
+
+        # Wait for any notification banners to disappear first
+        try:
+            notification_banner = self.page.get_by_label("הסל עודכן!")
+            if notification_banner.is_visible():
+                notification_banner.wait_for(state="hidden", timeout=3000)
+        except TimeoutError:
+            pass
+
         # Click the clear cart button
         clear_cart_button = self.page.get_by_role("button", name="ניקוי הסל")
         clear_cart_button.wait_for(state="visible", timeout=5000)
         clear_cart_button.click()
-        
-        # Wait for confirmation dialog and confirm
-        confirm_button = self.page.locator(self.CLEAR_CART_CONFIRM_BUTTON)
+
+        # Wait for confirmation dialog and confirm with role-based selector
+        confirm_button = self.page.get_by_role("button", name="כן, רוקנו את הסל")
         confirm_button.wait_for(state="visible", timeout=5000)
         confirm_button.click()
-        
+
         # Wait for cart to be empty
         self.page.locator(self.EMPTY_CART_MESSAGE).wait_for(state="visible", timeout=5000)
     
@@ -392,14 +402,8 @@ class CartPage(BasePage):
         Returns:
             True if button is enabled (clickable), False if disabled
         """
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
-        
-        try:
-            enabled_link = self.page.locator(self.CHECKOUT_LINK_ENABLED)
-            return enabled_link.is_visible(timeout=2000)
-        except:
-            return False
+        self.open_cart_sidebar()
+        return self.is_visible(self.CHECKOUT_LINK_ENABLED, timeout=2000)
     
     def get_checkout_total_price(self) -> float:
         """
@@ -408,8 +412,7 @@ class CartPage(BasePage):
         Returns:
             Total price as float (e.g., 181.60) or 0.00 if cart is empty
         """
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
+        self.open_cart_sidebar()
         
         try:
             # Use role-based selector for better reliability
@@ -425,7 +428,10 @@ class CartPage(BasePage):
                 return float(price_value)
             
             return 0.00
-        except Exception as e:
+        except (TimeoutError, ValueError) as e:
+            # TimeoutError: element not found
+            # ValueError: invalid number format
+            self.logger.warning(f"Could not get cart total: {e}")
             return 0.00
     
     def proceed_to_checkout(self) -> None:
@@ -433,8 +439,7 @@ class CartPage(BasePage):
         Click proceed to checkout button in the cart sidebar.
         Only works if cart has items (button is enabled).
         """
-        if not self.is_cart_sidebar_open():
-            self.open_cart_sidebar()
+        self.open_cart_sidebar()
         
         if not self.is_checkout_button_enabled():
             raise Exception("Cannot proceed to checkout: cart is empty or button is disabled")
@@ -457,5 +462,7 @@ class CartPage(BasePage):
         try:
             badge_text = self.get_text(self.CART_COUNT_BADGE)
             return badge_text.strip()
-        except:
+        except (TimeoutError, AttributeError):
+            # TimeoutError: badge not visible
+            # AttributeError: element not found
             return "0"

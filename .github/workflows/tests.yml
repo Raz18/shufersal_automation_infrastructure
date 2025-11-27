@@ -34,30 +34,44 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
-    - name: Install Playwright browsers
+    - name: Install Playwright browsers with dependencies
       run: |
-        playwright install chromium
-      env:
-        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 0
+        playwright install --with-deps chromium
     
-    - name: Create screenshots directory
-      run: mkdir -p screenshots
-    
-    - name: Run tests
-      env:
-        HEADLESS: true
-        SLOW_MO: 0
-        BROWSER_TIMEOUT: 30000
+    - name: Create required directories
       run: |
-        pytest tests/
-      continue-on-error: false
+        mkdir -p screenshots
+        mkdir -p reports
+        mkdir -p temp/test_runs
+    
+    - name: Create .env file for CI
+      run: |
+        cat > .env << EOF
+        # Browser Settings
+        HEADLESS=true
+        SLOW_MO=0
+        BROWSER_TIMEOUT=30000
+        
+        # Test Environment
+        TEST_ENV=ci
+        BASE_URL=https://www.shufersal.co.il/online/he
+        
+        # Delivery Address (for modal handling)
+        DELIVERY_CITY=תל אביב
+        DELIVERY_STREET=דיזנגוף
+        DELIVERY_STREET_NUMBER=1
+        DELIVERY_APARTMENT=1
+        
+        # Delivery Time Slot - Set to a future date
+        DELIVERY_DATE=20251115
+        DELIVERY_TIME=14:00
+        
+        # Reporting
+        SCREENSHOT_ON_FAILURE=true
+        VIDEO_ON_FAILURE=false
+        EOF
     
     - name: Run all tests
-      if: success()
-      env:
-        HEADLESS: true
-        SLOW_MO: 0
-        BROWSER_TIMEOUT: 30000
       run: |
         pytest tests/ -v --html=reports/full-report.html --self-contained-html
     

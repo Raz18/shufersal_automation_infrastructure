@@ -3,7 +3,7 @@ Page object for Shufersal Online search results page.
 """
 from typing import List
 from pages.base_page import BasePage
-from playwright.sync_api import Page
+from playwright.sync_api import Page, TimeoutError
 from pages.address_modal_page import AddressModal
 
 
@@ -79,7 +79,7 @@ class SearchResultsPage(BasePage):
         try:
             self.page.wait_for_selector(self.PRODUCT_CONTAINER, timeout=10000)
             return self.page.locator(self.PRODUCT_ITEMS).count()
-        except Exception:
+        except TimeoutError:
             # No product container means no results
             return 0
     
@@ -168,8 +168,12 @@ class SearchResultsPage(BasePage):
                     
                     self.logger.info(f"Added product {i+1}/{num_products}: '{product_name}'")
                     
-                except Exception as e:
+                except (TimeoutError, Exception) as e:
+                    # TimeoutError: element not found/clickable in time
                     self.logger.error(f"Failed to add product {i+1}: {e}")
+                    # Re-raise programming errors for better debugging
+                    if isinstance(e, (AttributeError, TypeError)):
+                        raise
                     continue
             
             # Set success flag
@@ -179,8 +183,11 @@ class SearchResultsPage(BasePage):
             
             return result
             
-        except Exception as e:
+        except (TimeoutError, Exception) as e:
             self.logger.error(f"Error in add_products_to_cart: {e}")
+            # Re-raise programming errors for better debugging
+            if isinstance(e, (AttributeError, TypeError, KeyError)):
+                raise
             return result
     
     def verify_product_contains_keyword(self, product_index: int, keyword: str) -> bool:
@@ -238,7 +245,9 @@ class SearchResultsPage(BasePage):
             self.logger.warning(f"Product '{product_name}' not found in search results")
             return None
             
-        except Exception as e:
+        except (TimeoutError, ValueError) as e:
+            # TimeoutError: element not found
+            # ValueError: invalid price format
             self.logger.error(f"Error getting price for product '{product_name}': {e}")
             return None
 

@@ -1,4 +1,5 @@
 import pytest
+from playwright.sync_api import Page
 from pages.cart_page import CartPage
 from pages.home_page import HomePage
 from pages.search_results_page import SearchResultsPage
@@ -13,7 +14,7 @@ class TestMultipleProductsToCart:
     from search results to the cart in one operation.
     """
     
-    def test_add_multiple_products_from_search(self, page):
+    def test_add_multiple_products_from_search(self, page: Page):
         """
         Test adding multiple products from search results to cart.
         
@@ -75,6 +76,3 @@ class TestMultipleProductsToCart:
         
         final_cart_count = cart_page.get_cart_item_count()
         assert final_cart_count == 0, f"Expected empty cart, but got {final_cart_count} items"
-    
-   
-    

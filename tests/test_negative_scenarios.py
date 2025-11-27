@@ -1,7 +1,4 @@
-"""
-Negative test cases for Shufersal Online.
-Tests error handling and edge cases.
-"""
+"""Negative test cases for Shufersal Online - error handling and edge cases."""
 import pytest
 from playwright.sync_api import Page
 from pages.home_page import HomePage
@@ -99,6 +96,3 @@ class TestNegativeScenarios:
         # Assert - system should handle gracefully
         product_count = search_page.get_product_count()
         assert product_count >= 0, "Product count should be non-negative"
-        
-        
-
