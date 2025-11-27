@@ -71,7 +71,8 @@ class TestMultipleProductsToCart:
         total_price = cart_page.get_checkout_total_price()
         assert total_price > 0.0, f"Expected price > 0, but got {total_price}"
         
-        # Clean up
+        # Clean up - re-open cart sidebar to ensure it's ready
+        cart_page.open_cart_sidebar()
         cart_page.clear_cart()
         
         final_cart_count = cart_page.get_cart_item_count()
